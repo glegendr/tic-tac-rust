@@ -1,0 +1,7 @@
+[package]
+name = "tic-tac-Rust"
+version = "0.1.0"
+authors = ["glegendr <glegendr@student.42.fr>"]
+
+[dependencies]
+colored = "1.8.0"
