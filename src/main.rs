@@ -5,6 +5,10 @@ use std::fmt;
 use std::io::{stdin};
 extern crate structopt;
 use structopt::StructOpt;
+extern crate rand;
+
+use rand::Rng;
+
 
 #[derive(Debug)]
 pub enum GrillErr {
@@ -78,25 +82,25 @@ impl Grill {
         Ok(pos)
     }
 
-    fn get_line(&mut self, pos: usize) -> (&char, &char, &char) {
+    fn get_line(&mut self, pos: usize) -> [&char; 3] {
         if pos % 3  == 0 {
-            return (
+            return [
                 self.cells.get(pos).unwrap(),
                 self.cells.get(pos + 1).unwrap(),
                 self.cells.get(pos + 2).unwrap()
-            );
+            ]
         } else if pos % 3 == 1 {
-            return (
+            return [
                 self.cells.get(pos - 1).unwrap(),
                 self.cells.get(pos).unwrap(),
                 self.cells.get(pos + 1).unwrap()
-            );
+            ]
         } else {
-            return (
-                self.cells.get(pos - 1).unwrap(),
+            return [
                 self.cells.get(pos - 2).unwrap(),
+                self.cells.get(pos - 1).unwrap(),
                 self.cells.get(pos).unwrap()
-            );
+            ]
         }
     }
 
@@ -105,31 +109,31 @@ impl Grill {
             return 0
         }
         match self.get_line(pos) {
-            ('X', 'X', 'X') => 1,
-            ('O', 'O', 'O') => 2,
+            ['X', 'X', 'X'] => 1,
+            ['O', 'O', 'O'] => 2,
             _ => 0,
         }
     }
 
-    fn get_column(&mut self, pos: usize) -> (&char, &char, &char) {
+    fn get_column(&mut self, pos: usize) -> [&char; 3] {
         if pos < 3 {
-            return (
+            return [
                 self.cells.get(pos).unwrap(),
                 self.cells.get(pos + 3).unwrap(),
                 self.cells.get(pos + 6).unwrap()
-            );
+                ]
         } else if pos < 6 {
-            return (
+            return [
                 self.cells.get(pos - 3).unwrap(),
                 self.cells.get(pos).unwrap(),
                 self.cells.get(pos + 3).unwrap()
-            );
+                ]
         } else {
-            return (
+            return [
                 self.cells.get(pos - 6).unwrap(),
                 self.cells.get(pos - 3).unwrap(),
                 self.cells.get(pos).unwrap()
-            );
+            ]
         }
     }
 
@@ -138,28 +142,28 @@ impl Grill {
             return 0
         }
         match self.get_column(pos) {
-            ('X', 'X', 'X') => 1,
-            ('O', 'O', 'O') => 2,
+            ['X', 'X', 'X'] => 1,
+            ['O', 'O', 'O'] => 2,
             _ => 0,
         }
     }
 
-    fn get_diagonal(&mut self, pos: usize) -> (&char, &char, &char) {
+    fn get_diagonal(&mut self, pos: usize) -> [&char; 3] {
         if pos % 2 == 1 {
-            return (&'0', &'0', &'0')
+            return [&'0', &'0', &'0']
         }
         if pos == 0 || pos == 4 || pos == 8 {
-            return (
+            return [
                 self.cells.get(0).unwrap(),
                 self.cells.get(4).unwrap(),
                 self.cells.get(8).unwrap()
-            )
+            ]
         } else {
-            return (
+            return [
                 self.cells.get(2).unwrap(),
                 self.cells.get(4).unwrap(),
                 self.cells.get(6).unwrap()
-            )
+            ]
         }
     }
 
@@ -168,10 +172,33 @@ impl Grill {
             return 0
         }
         match self.get_diagonal(pos) {
-            ('X', 'X', 'X') => 1,
-            ('O', 'O', 'O') => 2,
+            ['X', 'X', 'X'] => 1,
+            ['O', 'O', 'O'] => 2,
             _ => 0,
         }
+    }
+
+    fn get_corner(&mut self) -> [&char; 4] {
+        return [
+            self.cells.get(0).unwrap(),
+            self.cells.get(2).unwrap(),
+            self.cells.get(6).unwrap(),
+            self.cells.get(8).unwrap(),
+        ]
+    }
+
+    fn get_grill(&mut self) -> [&char; 9] {
+        [
+            self.cells.get(0).unwrap(),
+            self.cells.get(1).unwrap(),
+            self.cells.get(2).unwrap(),
+            self.cells.get(3).unwrap(),
+            self.cells.get(4).unwrap(),
+            self.cells.get(5).unwrap(),
+            self.cells.get(6).unwrap(),
+            self.cells.get(7).unwrap(),
+            self.cells.get(8).unwrap(),
+        ]
     }
 
     pub fn win(&mut self) -> u8 {
@@ -197,29 +224,51 @@ impl Grill {
 fn stupid_algo(grill: &mut Grill) -> usize {
     for i in 0..9 {
         if *grill.cells.get(i).unwrap() == ' ' {
-            return i + 1
+            return i
         }
     }
     0
 }
 
-fn free_space(array: (&char, &char, &char), player: usize) -> usize {
-    let mut my_char: &char;
+fn medium_algo(my_grill: &mut Grill, player: usize) -> usize {
+    let mut win = can_i_win(my_grill, player);
+    if win < 10 {
+        return win
+    }
+    if player ==  1 {
+        win = can_i_win(my_grill, 2);
+    } else {
+        win = can_i_win(my_grill, 1);
+    }
+    if win < 10 {
+        return win
+    }
+    for i in 0..9 {
+        if *my_grill.cells.get(i).unwrap() == ' ' {
+            return i
+        }
+    }
+    0
+}
+
+fn free_space(array: [&char; 3], player: usize) -> usize {
+    let mut my_char: &&char;
     let mut space = 10;
     if player == 1 {
-        my_char = &'X';
+        my_char = &&'X';
     } else {
-        my_char = &'O';
+        my_char = &&'O';
     }
-    for i in 0..3 {
-        let ch = array.0;
-        if ch != my_char && ch != &' ' {
+    let mut i = 0;
+    for ch in array.iter() {
+        if ch != my_char && ch != &&' ' {
             return 11
-        } else if space != 10 && ch == &' ' {
+        } else if space != 10 && ch == &&' ' {
             return 10
-        } else if ch == &' ' {
+        } else if ch == &&' ' {
             space = i;
         }
+        i = i + 1;
     }
     space
 }
@@ -247,35 +296,121 @@ fn can_i_win(grill: &mut Grill, player: usize) -> usize {
     10
 }
 
-//fn place(my_grill: &mut Grill, player: usize) -> usize {
-//}
+fn aim_corner(my_grill: &mut Grill, player: usize) -> usize {
+        match my_grill.get_corner() {
+            [' ', ' ', ' ', ' '] => return 0,
+            _ => ()
+        };
+    let mut line = 10;
+    let mut col = 10;
+    let mut i = 0;
+    for ch in my_grill.clone().get_corner().iter() {
+        if ch != &&' ' {
+            i = i + 1;
+            continue ;
+        }
+        if player == 2 {
+        match my_grill.get_line(if i < 2 {i * 2} else {2 + i * 2}) {
+            [_, 'X', _] => { i = i + 1; continue } ,
+            _ => line = i
+        }
+        match my_grill.get_column(if i < 2 {i * 2} else {2 + i * 2}) {
+            [_, 'X', _] => { i = i + 1;if line == i {line = 10}; continue },
+            _ => col = i
+        }
+        } else {
+        match my_grill.get_line(if i < 2 {i * 2} else {2 + i * 2}) {
+            [_, 'O', _] => { i = i + 1;continue } ,
+            _ => line = i
+        }
+        match my_grill.get_column(if i < 2 {i * 2} else {2 + i * 2}) {
+            [_, 'O', _] => { i = i + 1;if line == i {line = 10}; continue },
+            _ => col = i
+        }
+        }
+        if line == col {
+            return if i < 2 {i * 2} else {2 + i * 2}
+        }
+        i = i + 1;
+    }
+    if line != 10 {
+        return if line < 2 {line * 2} else {2 + line * 2}
+    } else if col != 10 {
+        return if col < 2 {col * 2} else {2 + col * 2}
+    }
+    10
+}
+
+fn aim_oposit_corner(my_grill: &mut Grill, player: usize) ->usize {
+    match my_grill.get_grill() {
+        ['X', ' ', ' ', ' ', 'O', ' ', ' ', ' ', ' '] => return 8,
+        [' ', ' ', 'X', ' ', 'O', ' ', ' ', ' ', ' '] => return 5,
+        _ => ()
+    }
+    return aim_corner(my_grill, player)
+}
+
+fn place(my_grill: &mut Grill, player: usize) -> usize {
+    match my_grill.get_grill() {
+        ['X', ' ', ' ', ' ', 'O', ' ', ' ', ' ', 'X'] => return 1,
+        [' ', ' ', 'X', ' ', 'O', ' ', 'X', ' ', ' '] => return 1,
+        _ => ()
+    }
+    let mut ret = aim_corner(my_grill, player);
+    if ret != 10 {
+        return ret
+    }
+    return stupid_algo(my_grill)
+}
 
 fn basic_algo(my_grill: &mut Grill, player: usize) -> usize {
-    let win = can_i_win(my_grill, player);
+    let mut win = can_i_win(my_grill, player);
     if win < 10 {
         return win
     }
     if player ==  1 {
-        let win = can_i_win(my_grill, 2);
+        win = can_i_win(my_grill, 2);
     } else {
-        let win = can_i_win(my_grill, 1);
+        win = can_i_win(my_grill, 1);
     }
     if win < 10 {
         return win
+    } else if *my_grill.cells.get(4).unwrap() == ' ' {
+        return 4
     }
-    if *my_grill.cells.get(4).unwrap() == ' ' {
-        return 4 + 1
+    place(my_grill, player)
+}
+
+fn l_algo(my_grill: &mut Grill, player: usize) -> usize {
+    let mut win = can_i_win(my_grill, player);
+    if win < 10 {
+        return win
     }
-    //place(my_grill, player)
-    0
+    if player ==  1 {
+        win = can_i_win(my_grill, 2);
+    } else {
+        win = can_i_win(my_grill, 1);
+    }
+    if win < 10 {
+        return win
+    } else if player == 1 {
+        let win = aim_oposit_corner(my_grill, player);
+        if win < 10 {
+            return win
+        }
+    }
+    return basic_algo(my_grill, player)
 }
 
 fn choose_algo(algo_id: usize, grill: &mut Grill, player: usize) -> usize {
     if algo_id == 1 {
-        return stupid_algo(grill)
-    } else {
-        return basic_algo(grill, player)
+        return stupid_algo(grill) + 1
+    } else if algo_id == 2 {
+        return medium_algo(grill, player) + 1
+    } else if algo_id == 3 {
+        return basic_algo(grill, player) + 1
     }
+    return l_algo(grill, player) + 1
 }
 
 #[derive(Debug, StructOpt)]
@@ -284,19 +419,19 @@ struct Opt {
     /// allow to play with an algo
 #[structopt(short = "a", long = "algo_id", default_value = "0")]
     algo_id: usize,
-#[structopt(short = "p", long = "player", default_value = "2")]
-    player: usize,
+    #[structopt(short = "p", long = "player", default_value = "1")]
+    player: u8,
 }
 
 fn main() {
+    let mut opt = Opt::from_args();
     let mut grill = Grill::new(1);
-    let opt = Opt::from_args();
     let mut pos;
+    println!("1|2|3\n4|5|6\n7|8|9");
     loop {
         let mut s = String::new();
-        println!("{}", grill);
 
-        if opt.algo_id == 0 || grill.player == 1 {
+        if opt.algo_id == 0 || grill.player == opt.player {
             println!("Give me your position pls: ");
             stdin().read_line(&mut s).expect("Did not enter a correct string");
             if let Some('\n')=s.chars().next_back() {
@@ -310,7 +445,12 @@ fn main() {
                 Err(_) => 0
             };
         } else {
+            if opt.algo_id < 1 || opt.algo_id > 4 {
+                let mut rng = rand::thread_rng();
+                opt.algo_id =  rng.gen_range(1, 5);
+            }
             pos = choose_algo(opt.algo_id, &mut grill, if opt.player == 1 { 2 } else { 1 });
+            println!("Algorythm play {}", pos);
         }
         if pos == 0 {
             println!("Error: Bad input (OutOfBox)");
@@ -328,6 +468,7 @@ fn main() {
             println!("-----[ {} ]-----", "Draw".purple().bold());
             break ;
         }
+        println!("{}", grill);
 
     }
     println!("{}", grill);

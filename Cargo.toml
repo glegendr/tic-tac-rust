@@ -6,3 +6,4 @@ authors = ["glegendr <glegendr@student.42.fr>"]
 [dependencies]
 colored = "1.8.0"
 structopt = "0.3.2"
+rand = "0.7.2"
