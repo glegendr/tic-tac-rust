@@ -121,13 +121,13 @@ impl Grill {
                 self.cells.get(pos).unwrap(),
                 self.cells.get(pos + 3).unwrap(),
                 self.cells.get(pos + 6).unwrap()
-                ]
+            ]
         } else if pos < 6 {
             return [
                 self.cells.get(pos - 3).unwrap(),
                 self.cells.get(pos).unwrap(),
                 self.cells.get(pos + 3).unwrap()
-                ]
+            ]
         } else {
             return [
                 self.cells.get(pos - 6).unwrap(),
@@ -252,7 +252,7 @@ fn medium_algo(my_grill: &mut Grill, player: usize) -> usize {
 }
 
 fn free_space(array: [&char; 3], player: usize) -> usize {
-    let mut my_char: &&char;
+    let my_char: &&char;
     let mut space = 10;
     if player == 1 {
         my_char = &&'X';
@@ -297,10 +297,10 @@ fn can_i_win(grill: &mut Grill, player: usize) -> usize {
 }
 
 fn aim_corner(my_grill: &mut Grill, player: usize) -> usize {
-        match my_grill.get_corner() {
-            [' ', ' ', ' ', ' '] => return 0,
-            _ => ()
-        };
+    match my_grill.get_corner() {
+        [' ', ' ', ' ', ' '] => return 0,
+        _ => ()
+    };
     let mut line = 10;
     let mut col = 10;
     let mut i = 0;
@@ -310,23 +310,23 @@ fn aim_corner(my_grill: &mut Grill, player: usize) -> usize {
             continue ;
         }
         if player == 2 {
-        match my_grill.get_line(if i < 2 {i * 2} else {2 + i * 2}) {
-            [_, 'X', _] => { i = i + 1; continue } ,
-            _ => line = i
-        }
-        match my_grill.get_column(if i < 2 {i * 2} else {2 + i * 2}) {
-            [_, 'X', _] => { i = i + 1;if line == i {line = 10}; continue },
-            _ => col = i
-        }
+            match my_grill.get_line(if i < 2 {i * 2} else {2 + i * 2}) {
+                [_, 'X', _] => { i = i + 1; continue } ,
+                _ => line = i
+            }
+            match my_grill.get_column(if i < 2 {i * 2} else {2 + i * 2}) {
+                [_, 'X', _] => { i = i + 1;if line == i {line = 10}; continue },
+                _ => col = i
+            }
         } else {
-        match my_grill.get_line(if i < 2 {i * 2} else {2 + i * 2}) {
-            [_, 'O', _] => { i = i + 1;continue } ,
-            _ => line = i
-        }
-        match my_grill.get_column(if i < 2 {i * 2} else {2 + i * 2}) {
-            [_, 'O', _] => { i = i + 1;if line == i {line = 10}; continue },
-            _ => col = i
-        }
+            match my_grill.get_line(if i < 2 {i * 2} else {2 + i * 2}) {
+                [_, 'O', _] => { i = i + 1;continue } ,
+                _ => line = i
+            }
+            match my_grill.get_column(if i < 2 {i * 2} else {2 + i * 2}) {
+                [_, 'O', _] => { i = i + 1;if line == i {line = 10}; continue },
+                _ => col = i
+            }
         }
         if line == col {
             return if i < 2 {i * 2} else {2 + i * 2}
@@ -356,7 +356,7 @@ fn place(my_grill: &mut Grill, player: usize) -> usize {
         [' ', ' ', 'X', ' ', 'O', ' ', 'X', ' ', ' '] => return 1,
         _ => ()
     }
-    let mut ret = aim_corner(my_grill, player);
+    let ret = aim_corner(my_grill, player);
     if ret != 10 {
         return ret
     }
@@ -402,6 +402,16 @@ fn l_algo(my_grill: &mut Grill, player: usize) -> usize {
     return basic_algo(my_grill, player)
 }
 
+fn random_algo(my_grill: &mut Grill) -> usize {
+    loop {
+        let mut rng = rand::thread_rng();
+        let pos = rng.gen_range(0, 9);
+        if my_grill.cells.get(pos).unwrap() == &' ' {
+            return pos;
+        }
+    }
+}
+
 fn choose_algo(algo_id: usize, grill: &mut Grill, player: usize) -> usize {
     if algo_id == 1 {
         return stupid_algo(grill) + 1
@@ -409,30 +419,62 @@ fn choose_algo(algo_id: usize, grill: &mut Grill, player: usize) -> usize {
         return medium_algo(grill, player) + 1
     } else if algo_id == 3 {
         return basic_algo(grill, player) + 1
+    } else if algo_id == 4 {
+        return l_algo(grill, player) + 1
     }
-    return l_algo(grill, player) + 1
+    return random_algo(grill) + 1
 }
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tic-tac-parsing")]
 struct Opt {
     /// allow to play with an algo
+    /// algo:
+    /// - 1 is a stupid algo
+    /// - 2 is a medium algo
+    /// - 3 is a piramidal algo
+    /// - 4 is a L algo
+    /// - 5 is a random algo
+    /// - 6 is a random between them all -
 #[structopt(short = "a", long = "algo_id", default_value = "0")]
     algo_id: usize,
+    /// allow to fight 2 algo, there are the sames as `a` flag
+    #[structopt(short = "f", long = "algo_fight", default_value = "0")]
+    algo_fight: usize,
+    /// This mean if you want to play player 1 or 2
     #[structopt(short = "p", long = "player", default_value = "1")]
     player: u8,
 }
+
+fn play_and_print(grill: &mut Grill, pos: usize) -> bool {
+    match grill.play(pos) {
+        Err(er) => println!("Error: Bad input ({:?})\n1|2|3\n4|5|6\n7|8|9\n------", er),
+        Ok(_) => (),
+    }
+    let win = grill.win();
+    if win != 0 {
+        println!("-----[ Player {} Won ]-----", if win == 1 { ("1".yellow().bold()) } else { ("2".red().bold()) });
+        return true
+    } else if grill.is_filled() {
+        println!("-----[ {} ]-----", "Draw".purple().bold());
+        return true
+    }
+    println!("{}", grill);
+    false
+}
+
+const ALGO_NBR: usize = 5;
 
 fn main() {
     let mut opt = Opt::from_args();
     let mut grill = Grill::new(1);
     let mut pos;
-    println!("1|2|3\n4|5|6\n7|8|9");
+    println!("-----[ Play With Numeric Keypad ]-----\n7|8|9\n4|5|6\n1|2|3");
     loop {
         let mut s = String::new();
 
-        if opt.algo_id == 0 || grill.player == opt.player {
-            println!("Give me your position pls: ");
+        if (opt.algo_id == 0 || grill.player == opt.player) && opt.algo_fight == 0 {
+            println!("Player {} Turn ", if grill.player == 1 { ("1".yellow().bold()) } else { ("2".red().bold()) });
             stdin().read_line(&mut s).expect("Did not enter a correct string");
             if let Some('\n')=s.chars().next_back() {
                 s.pop();
@@ -444,32 +486,32 @@ fn main() {
                 Ok(i) => i,
                 Err(_) => 0
             };
+            if pos <= 3 {
+                pos += 6;
+            } else if pos >= 7 {
+                pos -= 6;
+            }
         } else {
-            if opt.algo_id < 1 || opt.algo_id > 4 {
+            if opt.algo_id < 1 || opt.algo_id > ALGO_NBR {
                 let mut rng = rand::thread_rng();
                 opt.algo_id =  rng.gen_range(1, 5);
             }
             pos = choose_algo(opt.algo_id, &mut grill, if opt.player == 1 { 2 } else { 1 });
-            println!("Algorythm play {}", pos);
+            println!("Algorythm {} Turn", if grill.player == 1 { ("1".yellow().bold()) } else { ("2".red().bold())});
         }
-        if pos == 0 {
-            println!("Error: Bad input (OutOfBox)");
-            continue ;
-        }
-        match grill.play(pos) {
-            Err(er) => println!("Error: Bad input ({:?})", er),
-            Ok(_) => (),
-        }
-        let win = grill.win();
-        if win != 0 {
-            println!("-----[ Player {} Won ]-----", if win == 1 { ("1".yellow().bold()) } else { ("2".red().bold()) });
+        if play_and_print(&mut grill, pos) == true {
             break ;
-        } else if grill.is_filled() {
-            println!("-----[ {} ]-----", "Draw".purple().bold());
-            break ;
+        } else if opt.algo_fight != 0 {
+            if opt.algo_fight < 1 || opt.algo_fight > ALGO_NBR {
+                let mut rng = rand::thread_rng();
+                opt.algo_fight =  rng.gen_range(1, 5);
+            }
+            pos = choose_algo(opt.algo_fight, &mut grill, if opt.player == 1 { 2 } else { 1 });
+            println!("Algorythm {} Turn", "2".red().bold());
+            if play_and_print(&mut grill, pos) == true {
+                break ;
+            }
         }
-        println!("{}", grill);
-
     }
     println!("{}", grill);
 }
